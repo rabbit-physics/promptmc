@@ -55,7 +55,7 @@ CASE_FAIL_LIMIT = 1
 CKPT_S = 120           # Minimum interval (s) between uploaded OpenMC statepoints
 # Replicate a whole-case shard onto another node if its current holder has been continuously suspended
 # for SUSPEND_DUP_S (tracks both whole-node suspend and partial per-process SIGSTOP via coordinator clock).
-SUSPEND_DUP_S = None
+SUSPEND_DUP_S = 180
 # Whole-case jobs are dispatched largest-est first (in baseline core-seconds) using each node's measured
 # per-thread speed so heavier runs land on the node expected to finish them soonest.
 CASE_SETTLE_S = 2.0      # Brief batching settle window so concurrently submitted cases sort together
@@ -639,7 +639,7 @@ class Coordinator:
                 h = c.execute('SELECT state, last_seen, caps, susp_from FROM nodes WHERE name=?', (s['holder'],)).fetchone()
                 hb = json.loads(h['caps'] or '{}').get('hb_s', HB_S) if h else HB_S
                 sf = s['sf'] or (h['susp_from'] if h and h['state'] == 'suspend' else None)
-                stuck = not h or not h['last_seen'] or now - h['last_seen'] > 2 * hb or bool(SUSPEND_DUP_S and sf and now - sf >= SUSPEND_DUP_S)
+                stuck = not h or not h['last_seen'] or now - h['last_seen'] > 2 * hb or bool(sf and now - sf >= SUSPEND_DUP_S)
                 mine_t = s['work'] / r[node] if r.get(node) else None
                 if stuck:
                     rem = float('inf')
