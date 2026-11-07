@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PromptMC-X</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='none' stroke='%232f5be8' stroke-width='2.5'/%3E%3Ccircle cx='8' cy='8' r='2' fill='%232f5be8'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<script>try { const t = localStorage.getItem('p1-theme'); if (t) document.documentElement.dataset.theme = t; } catch (_) {}</script>
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="side" id="side" aria-label="Goals">
+    <div class="side-top">
+      <span class="brand">PromptMC-X</span>
+      <button class="ib" type="button" data-act="search" aria-label="Search" title="Search" id="searchBtn"></button>
+      <button class="ib" type="button" data-act="side-off" aria-label="Collapse sidebar" title="Collapse sidebar" id="sideOffBtn"></button>
+    </div>
+    <div class="search" id="searchBox" hidden><input id="searchIn" type="search" aria-label="Search goals and talks" autocomplete="off"></div>
+    <a class="side-new" href="#" data-act="new" id="newBtn"></a>
+    <nav class="glist" id="glist" aria-label="Goals and talks"></nav>
+    <div class="side-foot"><button class="avatar" type="button" data-act="env" id="envBtn" aria-label="Compute nodes, models, and theme" aria-haspopup="true"></button></div>
+  </aside>
+  <div class="scrim" id="scrim" data-act="nav-close"></div>
+  <main class="main" id="main">
+    <header class="top" id="top"></header>
+    <div class="scroll" id="scroll"><div class="thread" id="thread" aria-live="polite"></div></div>
+    <div class="dock" id="dock">
+      <h2 class="hero">What would you like to compute?</h2>
+      <form class="composer" id="composer" autocomplete="off">
+        <div class="atts" id="atts" hidden></div>
+        <textarea id="msg" rows="1" aria-label="Message"></textarea>
+        <input type="file" id="fileIn" multiple hidden accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.html,.htm,.txt,.md">
+        <div class="cbar">
+          <button class="cb round" type="button" data-act="plus" id="plusBtn" aria-label="Add files and particle presets" title="Add files and particle presets" aria-haspopup="true"></button>
+          <button class="cb pill mono" type="button" data-act="plus" id="presetChip" hidden></button>
+          <span class="grow"></span>
+          <button class="mpick ppick" type="button" data-act="ppick" id="ppick" aria-haspopup="true" hidden></button>
+          <button class="mpick" type="button" data-act="mpick" id="mpick" aria-haspopup="true"></button>
+          <div class="send" id="sendBox"></div>
+        </div>
+      </form>
+      <div class="robar" id="roBar" hidden><button class="btn" type="button" data-act="unarchive">Unarchive</button></div>
+    </div>
+  </main>
+  <aside class="panel" id="panel" aria-label="Workspace" hidden>
+    <header class="ph"><button class="ib" type="button" data-act="side-on" aria-label="Expand sidebar" title="Expand sidebar" id="pside"></button><div class="seg" role="tablist" id="pseg" aria-label="Workspace"></div>
+      <button class="ib" type="button" data-act="panel-close" aria-label="Close workspace" title="Close workspace" id="pclose"></button></header>
+    <div class="pbody" id="pbody"></div>
+  </aside>
+</div>
+<div class="pop" id="pop" hidden></div>
+<dialog class="dlg" id="llmDlg" aria-labelledby="llmT"></dialog>
+<dialog class="dlg sm" id="workDlg" aria-labelledby="workT"></dialog>
+<dialog class="dlg sm nd" id="nodeDlg" aria-labelledby="nodeT"></dialog>
+<script src="ui.js"></script>
+<script src="cards.js"></script>
+<script src="panel.js"></script>
+<script src="review.js"></script>
+<script src="rules.js"></script>
+<script src="llm.js"></script>
+<script src="nodes.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
