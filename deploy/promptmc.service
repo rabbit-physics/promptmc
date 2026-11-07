@@ -1,0 +1,20 @@
+[Unit]
+Description=PromptMC-X (127.0.0.1:8979)
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/promptmc/app
+Environment=PYTHONPATH=/opt/promptmc/app
+Environment=PMX_HOME=/opt/promptmc/pmx
+Environment=OPENMC_CROSS_SECTIONS=/opt/promptmc/nuclear_data/endfb-viii.0-hdf5/cross_sections.xml
+Environment=PATH=/opt/promptmc/miniforge3/envs/openmc/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/promptmc/miniforge3/envs/openmc/bin/python -m p1.server --root /opt/promptmc/var --port 8979
+Restart=on-failure
+RestartSec=3
+# Solver processes run in separate systemd-run scopes; restarting this service stops only the kernel
+KillMode=process
+MemoryMax=1500M
+
+[Install]
+WantedBy=default.target
