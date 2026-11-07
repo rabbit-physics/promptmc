@@ -31,7 +31,7 @@ import urllib.request
 from collections import deque
 from pathlib import Path
 
-PROTO = 3
+PROTO = 4
 HB_S = 15
 # Abort running solvers if coordinator is unreachable for this long: leases have already expired and
 # work was likely replicated elsewhere; coordinator uses the same deadline for stop confirmation.

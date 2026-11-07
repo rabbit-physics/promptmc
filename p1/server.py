@@ -20,6 +20,7 @@ from .kernel import protocol
 from .kernel.core import Kernel
 from .kernel.llm import LlmUnavailable
 from .kernel.protocol import ProtocolError
+from .kernel.remote import Remote
 from .kernel.store import jl
 from .nodes.client import Client as NodesClient
 from .nodes.client import NodesError
@@ -339,9 +340,12 @@ def main(argv=None):
     ap.add_argument('--port', type=int, default=8979)
     ap.add_argument('--nodes-url', help='Coordinator URL (defaults to P1_NODES_URL, then http://10.0.0.10:8991)')
     ap.add_argument('--nodes-token-file', help='Admin token file (defaults to P1_NODES_TOKEN_FILE, then ~/pmx-coord/admin.token)')
+    ap.add_argument('--no-dispatch', action='store_true', default=os.environ.get('P1_DISPATCH') == '0',
+                    help='Run new jobs locally only (or set P1_DISPATCH=0); existing remote jobs still finish normally')
     a = ap.parse_args(argv)
     NODES = NodesClient(a.nodes_url, a.nodes_token_file)
-    KERNEL = Kernel(a.root)
+    remote = Remote(NodesClient(a.nodes_url, a.nodes_token_file, timeout=60), a.root, dispatch=not a.no_dispatch)
+    KERNEL = Kernel(a.root, remote=remote)
     srv = ThreadingHTTPServer((a.host, a.port), Handler)
     srv.daemon_threads = True
     print(f'promptmc-p1 on http://{a.host}:{a.port}  root={KERNEL.root}', flush=True)
