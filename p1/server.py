@@ -21,9 +21,12 @@ from .kernel.core import Kernel
 from .kernel.llm import LlmUnavailable
 from .kernel.protocol import ProtocolError
 from .kernel.store import jl
+from .nodes.client import Client as NodesClient
+from .nodes.client import NodesError
 
 WEB = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'web')
 KERNEL = None
+NODES = None
 
 
 def _finite(x):
@@ -166,6 +169,47 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(400, {'error': str(e)})
         return self._send(404, {'error': 'not found'})
 
+    def _nodes_call(self, fn):
+        """Forward coordinator 400/404/409/503 responses directly; map other failures to 502."""
+        try:
+            return self._send(200, fn(NODES or NodesClient()))
+        except NodesError as e:
+            code = e.code if e.code in (400, 404, 409, 503) else 502
+            return self._send(code, {'error': e.msg})
+
+    def _nodes_post(self, path, req):
+        if not (self.headers.get('Content-Type') or '').startswith('application/json'):
+            return self._send(415, {'error': 'Expected application/json'})
+        name = req.get('node')
+        if path in ('/api/nodes/enable', '/api/nodes/stop', '/api/nodes/rescan') and not (isinstance(name, str) and name):
+            return self._send(400, {'error': 'Missing node name'})
+        if path == '/api/nodes/enable':
+            if not isinstance(req.get('enabled'), bool):
+                return self._send(400, {'error': 'enabled must be boolean'})
+            return self._nodes_call(lambda c: c.set_enabled(name, req['enabled']))
+        if path == '/api/nodes/stop':
+            return self._nodes_call(lambda c: c.stop(name))
+        if path == '/api/nodes/rescan':
+            return self._nodes_call(lambda c: c.rescan(name))
+        if path == '/api/nodes/jobs':
+            return self._nodes_call(lambda c: c.create_job(req))
+        if path == '/api/nodes/cancel':
+            if not isinstance(req.get('id'), str):
+                return self._send(400, {'error': 'Missing job id'})
+            return self._nodes_call(lambda c: c.cancel(req['id']))
+        return self._send(404, {'error': 'not found'})
+
+    def _nodes_get(self, p, q):
+        if p == '/api/nodes':
+            return self._nodes_call(lambda c: c.nodes())
+        if p == '/api/nodes/jobs':
+            return self._nodes_call(lambda c: c.jobs())
+        if p == '/api/nodes/job':
+            return self._nodes_call(lambda c: c.job(q['id'], q.get('events') == '1'))
+        if p == '/api/nodes/merge':
+            return self._nodes_call(lambda c: c.merge(q['id']))
+        return self._send(404, {'error': 'not found'})
+
     def do_GET(self):
         u = urlparse(self.path)
         q = {k: v[0] for k, v in parse_qs(u.query).items()}
@@ -241,6 +285,8 @@ class Handler(BaseHTTPRequestHandler):
                 rows = KERNEL.store.events_after(int(q.get('after', 0)), limit=100000)
                 body = '\n'.join(dumps(r) for r in rows) + '\n'
                 return self._send(200, body, 'application/x-ndjson; charset=utf-8')
+            if p == '/api/nodes' or p.startswith('/api/nodes/'):
+                return self._nodes_get(p, q)
             if p == '/api/health':
                 return self._send(200, {'ok': True, 'runner': KERNEL.runner.available(), 'llm': KERNEL.llm.describe(),
                                         'last_seq': KERNEL.store.last_seq()})
@@ -286,12 +332,15 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main(argv=None):
-    global KERNEL
+    global KERNEL, NODES
     ap = argparse.ArgumentParser()
     ap.add_argument('--root', default=os.environ.get('P1_ROOT', 'var'))
     ap.add_argument('--host', default='127.0.0.1')
     ap.add_argument('--port', type=int, default=8979)
+    ap.add_argument('--nodes-url', help='Coordinator URL (defaults to P1_NODES_URL, then http://10.0.0.10:8991)')
+    ap.add_argument('--nodes-token-file', help='Admin token file (defaults to P1_NODES_TOKEN_FILE, then ~/pmx-coord/admin.token)')
     a = ap.parse_args(argv)
+    NODES = NodesClient(a.nodes_url, a.nodes_token_file)
     KERNEL = Kernel(a.root)
     srv = ThreadingHTTPServer((a.host, a.port), Handler)
     srv.daemon_threads = True
