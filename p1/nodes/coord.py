@@ -351,6 +351,14 @@ class Coordinator:
     def register(self, c, node, b, addr, now):
         caps = b['caps']
         epoch = b.get('epoch')
+        old = c.execute('SELECT epoch FROM nodes WHERE name=?', (node,)).fetchone()
+        if old and old['epoch'] is not None:
+            if not isinstance(epoch, int) or epoch < old['epoch']:
+                raise HttpError(409, 'node instance superseded')
+            if epoch == old['epoch']:
+                c.execute('UPDATE nodes SET caps=?, last_seen=MAX(last_seen, ?), addr=? WHERE name=?',
+                          (json.dumps(caps), now, addr, node))
+                return {'ok': True, 'lease_s': LEASE_S, 'proto': PROTO}
         c.execute('INSERT INTO nodes(name, caps, first_seen, last_seen, addr, proto, state) VALUES(?,?,?,?,?,?,?) '
                   'ON CONFLICT(name) DO UPDATE SET caps=excluded.caps, last_seen=excluded.last_seen, addr=excluded.addr, '
                   'proto=excluded.proto, reject=NULL, state=excluded.state, res=NULL',
@@ -379,8 +387,14 @@ class Coordinator:
 
     def heartbeat(self, c, node, b, now):
         current = c.execute('SELECT epoch, hb_seq, claim_seq FROM nodes WHERE name=?', (node,)).fetchone()
+        if current and current['epoch'] is not None and b.get('epoch') != current['epoch']:
+            raise HttpError(409, 'node instance superseded')
         seq, ack = b.get('seq'), b.get('acked_claim')
         ordered = isinstance(seq, int) and not isinstance(seq, bool) and seq > 0
+        if ordered and current and seq <= current['hb_seq']:
+            return {'cancel': [], 'rescan': False}
+        if ordered:
+            c.execute('UPDATE nodes SET hb_seq=? WHERE name=?', (seq, node))
         state = b.get('state') or 'active'
         entries = self._entries(b.get('running'))
         c.execute('UPDATE nodes SET last_seen=MAX(last_seen, ?), state=?, res=?, running=?, '
@@ -560,6 +574,9 @@ class Coordinator:
         return sh
 
     def claim(self, c, node, now, b=None):
+        instance = c.execute('SELECT epoch FROM nodes WHERE name=?', (node,)).fetchone()
+        if instance and instance['epoch'] is not None and (b or {}).get('epoch') != instance['epoch']:
+            raise HttpError(409, 'node instance superseded')
         c.execute('UPDATE nodes SET last_seen=MAX(last_seen, ?) WHERE name=?', (now, node))
         self._requeue_expired(c, now)
         live = self._live(c, now)

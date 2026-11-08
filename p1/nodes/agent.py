@@ -881,6 +881,10 @@ class Agent:
                     if r.get('rescan'):
                         self.rescan_now.set()
                     last_hb = time.time()
+                except urllib.error.HTTPError as e:
+                    log('heartbeat refused', self.why(e))
+                    if e.code == 409:
+                        self.register()
                 except (urllib.error.URLError, OSError, http.client.HTTPException, ValueError) as e:
                     log('heartbeat failed', self.why(e))
             self.give_up_if_lost()
