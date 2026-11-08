@@ -38,7 +38,7 @@ else:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import jobs as J  # noqa: E402
 
-PROTO = 3              # Node protocol version: agents with mismatched version are rejected at registration
+PROTO = 4              # Node protocol version: agents with mismatched version are rejected at registration
 LEASE_S = 120
 # Agents self-terminate active runs after RENEW_LIMIT_S without coordinator contact; coordinator uses
 # the same window (+ 2 heartbeats margin) before treating an unreachable node's run as stopped.
