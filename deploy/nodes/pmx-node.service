@@ -1,0 +1,16 @@
+[Unit]
+Description=PromptMC-X Compute Node Agent (worker-linux-1)
+After=pmx-coord.service
+StartLimitIntervalSec=0
+
+[Service]
+# The agent is a single standalone file placed in /opt/promptmc/pmx-node/app/, matching coord-host and WSL workers
+WorkingDirectory=/opt/promptmc/pmx-node
+ExecStart=/usr/bin/python3 -I /opt/promptmc/pmx-node/app/agent.py /opt/promptmc/pmx-node/node.json
+Restart=always
+RestartSec=15
+MemoryMax=4G
+Nice=10
+
+[Install]
+WantedBy=default.target

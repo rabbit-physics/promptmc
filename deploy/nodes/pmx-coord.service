@@ -1,0 +1,15 @@
+[Unit]
+Description=PromptMC-X Compute Node Coordinator (10.0.0.10:8991)
+StartLimitIntervalSec=0
+
+[Service]
+# Run from an isolated app directory (coord.py and jobs.py) so coordinator updates do not touch the product backend tree
+WorkingDirectory=/opt/promptmc/pmx-coord
+ExecStart=/opt/promptmc/miniforge3/envs/openmc/bin/python -I /opt/promptmc/pmx-coord/app/coord.py --var /opt/promptmc/pmx-coord --host 10.0.0.10 --port 8991
+# 10.0.0.10 becomes available after the private VPN interface comes up; retry every 15 s on bind failure
+Restart=always
+RestartSec=15
+MemoryMax=1G
+
+[Install]
+WantedBy=default.target
